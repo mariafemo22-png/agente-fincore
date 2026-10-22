@@ -1,94 +1,77 @@
-let SYSTEM_PROMPT = '';
-let apiKey = localStorage.getItem('gemini_api_key') || '';
-let history = [];
+// SYSTEM PROMPT: Diseñado según los requisitos de tu matriz
+const SYSTEM_INSTRUCTION = `
+Actúa como un Gemelo Digital de una Analista Financiera Senior de una multinacional de dispositivos biomédicos en Estados Unidos (US Sales).
+Tu foco es la Gerencia Financiera estratégica:
+1. Comisiones e incentivos comerciales: Conciliación de Accruals (lo estimado) vs. Actuals (lo pagado realmente).
+2. Tono y Personalidad: Profesional, sumamente respetuoso, directo al grano, honesto, orientado a la acción y a decisiones de negocio (criterio de dueño, no confundir volumen con rentabilidad).
+3. Habilidades técnicas: Eres experta en Excel masivo (fórmulas avanzadas XLOOKUP, SUMIFS, LET, LAMBDA), Power Query (lenguaje M) para consolidar archivos dispersos y diseño de templates limpios.
+4. Restricciones:
+   - No inventes fuentes ni uses información externa no verificada.
+   - Si se te pide unificar archivos o conciliar datos, propón soluciones estructuradas para Excel o Power Query paso a paso.
+   - Entrega los resultados listos para exportar a Word, Excel o PDF cuando se requiera.
+`;
 
-const chatBox = document.getElementById('chat');
-document.getElementById('apiKey').value = apiKey;
-
-// Cargar el system prompt desde /context/system-prompt.md
-fetch('context/system-prompt.md')
-  .then(r => r.text())
-  .then(txt => SYSTEM_PROMPT = txt)
-  .catch(() => addMessage('sistema', 'No se pudo cargar system-prompt.md. Verifica la ruta.'));
-
-document.getElementById('saveKey').onclick = () => {
-  apiKey = document.getElementById('apiKey').value.trim();
-  localStorage.setItem('gemini_api_key', apiKey);
-  addMessage('sistema', 'API Key guardada correctamente.');
-};
-
-function addMessage(role, text) {
-  const div = document.createElement('div');
-  div.className = 'message ' + role;
-  div.innerText = text;
-  chatBox.appendChild(div);
-  chatBox.scrollTop = chatBox.scrollHeight;
-  return div;
+function saveApiKey() {
+    const key = document.getElementById('apiKey').value.trim();
+    if (key) {
+        localStorage.setItem('gemini_api_key', key);
+        alert('API Key guardada correctamente.');
+    }
 }
 
-async function callGemini(userText) {
-  if (!apiKey) { addMessage('sistema', 'Primero ingresa tu API Key de Gemini.'); return; }
+window.onload = () => {
+    const savedKey = localStorage.getItem('gemini_api_key');
+    if (savedKey) document.getElementById('apiKey').value = savedKey;
+};
 
-  addMessage('usuario', userText);
-  history.push({ role: 'user', parts: [{ text: userText }] });
+async function sendMessage() {
+    const apiKey = localStorage.getItem('gemini_api_key') || document.getElementById('apiKey').value.trim();
+    const input = document.getElementById('userInput');
+    const chatBox = document.getElementById('chatBox');
+    const userText = input.value.trim();
 
-  const url = `https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key=${apiKey}`;
-  const body = {
-    systemInstruction: { parts: [{ text: SYSTEM_PROMPT }] },
-    contents: history
-  };
+    if (!apiKey) {
+        alert('Por favor ingresa tu Gemini API Key.');
+        return;
+    }
+    if (!userText) return;
 
-  const pensando = addMessage('sistema', 'Pensando...');
-  try {
-    const res = await fetch(url, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify(body)
-    });
-    const data = await res.json();
-    pensando.remove();
-    const respuesta = data.candidates?.[0]?.content?.parts?.[0]?.text
-      || 'No se obtuvo respuesta. Revisa tu API Key.';
-    addMessage('agente', respuesta);
-    history.push({ role: 'model', parts: [{ text: respuesta }] });
-  } catch (e) {
-    pensando.remove();
-    addMessage('sistema', 'Error: ' + e.message);
-  }
+    // Render mensaje usuario
+    chatBox.innerHTML += `<div class="message user"><strong>Tú:</strong> ${userText}</div>`;
+    input.value = '';
+    chatBox.scrollTop = chatBox.scrollHeight;
+
+    // Render loader agente
+    const tempAgentMsg = document.createElement('div');
+    tempAgentMsg.className = 'message agent';
+    tempAgentMsg.innerText = 'Analizando información financiera...';
+    chatBox.appendChild(tempAgentMsg);
+    chatBox.scrollTop = chatBox.scrollHeight;
+
+    try {
+        const response = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key=${apiKey}`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+                system_instruction: {
+                    parts: [{ text: SYSTEM_INSTRUCTION }]
+                },
+                contents: [{
+                    parts: [{ text: userText }]
+                }]
+            })
+        });
+
+        const data = await response.json();
+        
+        if (data.candidates && data.candidates[0].content.parts[0].text) {
+            tempAgentMsg.innerHTML = `<strong>Agente Financiero:</strong>\n${data.candidates[0].content.parts[0].text}`;
+        } else {
+            tempAgentMsg.innerText = 'Error: ' + JSON.stringify(data.error?.message || 'No se pudo generar respuesta.');
+        }
+    } catch (error) {
+        tempAgentMsg.innerText = 'Error de conexión: ' + error.message;
+    }
+
+    chatBox.scrollTop = chatBox.scrollHeight;
 }
-
-document.getElementById('sendBtn').onclick = () => {
-  const input = document.getElementById('userInput');
-  const text = input.value.trim();
-  if (!text) return;
-  input.value = '';
-  callGemini(text);
-};
-
-/* ---------- CONSOLIDACIÓN DE EXCEL ---------- */
-let archivos = [];
-document.getElementById('fileInput').onchange = e => archivos = Array.from(e.target.files);
-
-document.getElementById('consolidarBtn').onclick = async () => {
-  if (archivos.length === 0) { addMessage('sistema', 'Sube al menos un archivo Excel.'); return; }
-
-  let datos = [];
-  for (const file of archivos) {
-    const buffer = await file.arrayBuffer();
-    const wb = XLSX.read(buffer);
-    const sheet = wb.Sheets[wb.SheetNames[0]];
-    const json = XLSX.utils.sheet_to_json(sheet);
-    json.forEach(row => row['__archivo_origen'] = file.name);
-    datos = datos.concat(json);
-  }
-
-  const hoja = XLSX.utils.json_to_sheet(datos);
-  const libro = XLSX.utils.book_new();
-  XLSX.utils.book_append_sheet(libro, hoja, 'Consolidado');
-  XLSX.writeFile(libro, 'archivo_consolidado.xlsx');
-
-  addMessage('sistema', `✅ Consolidados ${archivos.length} archivos (${datos.length} filas). Descarga iniciada.`);
-
-  const muestra = JSON.stringify(datos.slice(0, 20));
-  callGemini(`Analiza esta muestra (primeras 20 de ${datos.length} filas) de comisiones consolidadas. Dame hallazgos clave, inconsistencias y recomendaciones:\n${muestra}`);
-};
