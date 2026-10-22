@@ -1,0 +1,37 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<title>FinCore - Agente Financiero IA</title>
+<link rel="stylesheet" href="style.css">
+<script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+</head>
+<body>
+<div class="container">
+  <header>
+    <h1>💼 FinCore</h1>
+    <p>Tu gemelo digital de Gerencia Financiera</p>
+  </header>
+
+  <section class="config">
+    <label>API Key de Gemini:</label>
+    <input type="password" id="apiKey" placeholder="Pega aquí tu API Key">
+    <button id="saveKey">Guardar</button>
+  </section>
+
+  <section class="upload">
+    <label>📂 Subir archivos Excel a consolidar:</label>
+    <input type="file" id="fileInput" multiple accept=".xlsx,.xls">
+    <button id="consolidarBtn">Consolidar archivos</button>
+  </section>
+
+  <section id="chat" class="chat-box"></section>
+
+  <section class="input-area">
+    <textarea id="userInput" placeholder="Escribe tu consulta a FinCore..."></textarea>
+    <button id="sendBtn">Enviar</button>
+  </section>
+</div>
+<script src="app.js"></script>
+</body>
+</html>
