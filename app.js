@@ -36,12 +36,12 @@ async function sendMessage() {
     }
     if (!userText) return;
 
-    // Render mensaje usuario
+    // Mostrar mensaje del usuario
     chatBox.innerHTML += `<div class="message user"><strong>Tú:</strong> ${userText}</div>`;
     input.value = '';
     chatBox.scrollTop = chatBox.scrollHeight;
 
-    // Render loader agente
+    // Mostrar mensaje temporal de carga
     const tempAgentMsg = document.createElement('div');
     tempAgentMsg.className = 'message agent';
     tempAgentMsg.innerText = 'Analizando información financiera...';
@@ -49,7 +49,8 @@ async function sendMessage() {
     chatBox.scrollTop = chatBox.scrollHeight;
 
     try {
-        const response = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key=${apiKey}`, {
+        // MODELO ACTUALIZADO: gemini-2.0-flash (el modelo oficial gratuito actual de Google)
+        const response = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent?key=${apiKey}`, {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({
@@ -64,14 +65,15 @@ async function sendMessage() {
 
         const data = await response.json();
         
-        if (data.candidates && data.candidates[0].content.parts[0].text) {
+        if (data.candidates && data.candidates[0].content && data.candidates[0].content.parts[0].text) {
             tempAgentMsg.innerHTML = `<strong>Agente Financiero:</strong>\n${data.candidates[0].content.parts[0].text}`;
+        } else if (data.error) {
+            tempAgentMsg.innerText = 'Error de Google: ' + data.error.message;
         } else {
-            tempAgentMsg.innerText = 'Error: ' + JSON.stringify(data.error?.message || 'No se pudo generar respuesta.');
+            tempAgentMsg.innerText = 'No se recibió respuesta válida del modelo.';
         }
     } catch (error) {
         tempAgentMsg.innerText = 'Error de conexión: ' + error.message;
     }
 
     chatBox.scrollTop = chatBox.scrollHeight;
-}
