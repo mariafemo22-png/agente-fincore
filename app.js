@@ -11,17 +11,28 @@ Tu foco es la Gerencia Financiera estratégica:
    - Entrega los resultados listos para exportar a Word, Excel o PDF cuando se requiera.
 `;
 
+function toggleConfig() {
+    const box = document.getElementById('apiBox');
+    box.style.display = box.style.display === 'none' ? 'flex' : 'none';
+}
+
 function saveApiKey() {
     const key = document.getElementById('apiKey').value.trim();
     if (key) {
         localStorage.setItem('gemini_api_key', key);
-        alert('API Key guardada correctamente.');
+        alert('API Key guardada con éxito.');
+        document.getElementById('apiBox').style.display = 'none'; // Se oculta automáticamente al guardar
     }
 }
 
 window.onload = () => {
     const savedKey = localStorage.getItem('gemini_api_key');
-    if (savedKey) document.getElementById('apiKey').value = savedKey;
+    if (savedKey) {
+        document.getElementById('apiKey').value = savedKey;
+        document.getElementById('apiBox').style.display = 'none'; // Se mantiene oculta si ya existe
+    } else {
+        document.getElementById('apiBox').style.display = 'flex'; // Solo se muestra si nunca la has puesto
+    }
 };
 
 async function sendMessage() {
