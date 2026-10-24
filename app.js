@@ -26,12 +26,24 @@ function saveApiKey() {
 }
 
 window.onload = () => {
+    // 1. Revisa si el enlace trae la clave oculta al final (#key=...)
+    const hash = window.location.hash;
+    if (hash && hash.includes('key=')) {
+        const keyFromUrl = hash.split('key=')[1];
+        if (keyFromUrl) {
+            localStorage.setItem('gemini_api_key', keyFromUrl.trim());
+            // Borra la clave de la barra de direcciones de inmediato para que nadie la vea
+            window.history.replaceState(null, null, window.location.pathname);
+        }
+    }
+
+    // 2. Cargar la clave si ya estaba guardada
     const savedKey = localStorage.getItem('gemini_api_key');
+    const apiBox = document.getElementById('apiBox');
+    
     if (savedKey) {
-        document.getElementById('apiKey').value = savedKey;
-        document.getElementById('apiBox').style.display = 'none'; // Se mantiene oculta si ya existe
-    } else {
-        document.getElementById('apiBox').style.display = 'flex'; // Solo se muestra si nunca la has puesto
+        if (document.getElementById('apiKey')) document.getElementById('apiKey').value = savedKey;
+        if (apiBox) apiBox.style.display = 'none'; // Ocultar panel
     }
 };
 
