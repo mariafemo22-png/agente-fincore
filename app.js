@@ -24,29 +24,6 @@ window.onload = () => {
     if (savedKey) document.getElementById('apiKey').value = savedKey;
 };
 
-// Función para encontrar el modelo disponible para TU cuenta
-async function getWorkingModel(apiKey) {
-    try {
-        const response = await fetch(`https://generativelanguage.googleapis.com/v1beta/models?key=${apiKey}`);
-        const data = await response.json();
-        
-        if (data.models) {
-            // Busca primero gemini-2.0, luego 1.5, o el primero que sirva para generar texto
-            const validModel = data.models.find(m => 
-                m.supportedGenerationMethods?.includes("generateContent") && 
-                (m.name.includes("gemini-2.0") || m.name.includes("gemini-1.5") || m.name.includes("gemini-pro"))
-            );
-            if (validModel) {
-                return validModel.name; // Retorna por ejemplo: "models/gemini-2.0-flash"
-            }
-        }
-    } catch (e) {
-        console.error("Error buscando modelos:", e);
-    }
-    // Si falla la búsqueda, intentamos con el estándar oficial por defecto
-    return "models/gemini-1.5-flash-latest";
-}
-
 async function sendMessage() {
     const apiKey = localStorage.getItem('gemini_api_key') || document.getElementById('apiKey').value.trim();
     const input = document.getElementById('userInput');
@@ -67,16 +44,13 @@ async function sendMessage() {
     // Mensaje temporal de espera
     const tempAgentMsg = document.createElement('div');
     tempAgentMsg.className = 'message agent';
-    tempAgentMsg.innerText = 'Detectando modelo y analizando datos...';
+    tempAgentMsg.innerText = 'Analizando información financiera...';
     chatBox.appendChild(tempAgentMsg);
     chatBox.scrollTop = chatBox.scrollHeight;
 
     try {
-        // 1. Detectar el modelo disponible para tu API key
-        const modelName = await getWorkingModel(apiKey);
-
-        // 2. Hacer la llamada al modelo encontrado
-        const response = await fetch(`https://generativelanguage.googleapis.com/v1beta/${modelName}:generateContent?key=${apiKey}`, {
+        // LLAMADA DIRECTA AL MODELO GRATUITO OFICIAL DE GOOGLE: gemini-2.0-flash
+        const response = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent?key=${apiKey}`, {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({
@@ -96,7 +70,7 @@ async function sendMessage() {
         } else if (data.error) {
             tempAgentMsg.innerText = 'Error de Google: ' + data.error.message;
         } else {
-            tempAgentMsg.innerText = 'Respuesta vacía o bloqueada por Google. Intenta con otra consulta.';
+            tempAgentMsg.innerText = 'No se recibió respuesta válida.';
         }
     } catch (error) {
         tempAgentMsg.innerText = 'Error de conexión: ' + error.message;
