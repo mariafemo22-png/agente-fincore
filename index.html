@@ -13,8 +13,12 @@
                 <h2>💼 FinanzIA Gerencial</h2>
                 <p>Especialista en Comisiones, Accruals y Automatización de Datos</p>
             </div>
-            <div class="api-key-box">
-                <input type="password" id="apiKey" placeholder="Pega tu Gemini API Key aquí">
+            <!-- Botón discreto de configuración -->
+            <button id="gearBtn" onclick="toggleConfig()" style="background: none; border: none; font-size: 1.2rem; cursor: pointer;">⚙️</button>
+            
+            <!-- Panel de API oculto por defecto -->
+            <div class="api-key-box" id="apiBox" style="display: none;">
+                <input type="password" id="apiKey" placeholder="Pega tu Gemini API Key">
                 <button onclick="saveApiKey()">Guardar</button>
             </div>
         </header>
